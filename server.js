@@ -59,25 +59,23 @@ async function extractTextFromPDF(pdfPath) {
   try {
     await fs.mkdir(outputDir, { recursive: true });
     
-    // Configure pdf2pic options
-    const options = {
-      density: 300,
-      saveFilename: "page",
-      savePath: outputDir,
-      format: "png",
-      width: 2480, // A4 at 300 DPI
-      height: 3508 // A4 at 300 DPI
-    };
-    
-    // Create converter instance
-    const convert = fromPath(pdfPath, options);
-    
-    // Convert all pages
-    const conversionResults = await convert.bulk(-1); // -1 means all pages
+    const PDFExtract = require('pdf.js-extract').PDFExtract;
+    const pdfExtract = new PDFExtract();
+    const data = await pdfExtract.extract(pdfPath, { 
+      firstPage: 1,
+      lastPage: null,
+      renderPageAsImage: true // Render page as image
+    });
     
     const extractedTexts = [];
-    for (let i = 0; i < conversionResults.length; i++) {
-      const imagePath = conversionResults[i].path;
+    for (let i = 0; i < data.pages.length; i++) {
+      const page = data.pages[i];
+      
+      // Save the page image
+      const imagePath = path.join(outputDir, `page-${i+1}.png`);
+      await fs.writeFile(imagePath, page.image, 'base64');
+      
+      // Process with your existing code
       await preprocessImage(imagePath);
       
       console.log(`Processing page ${i+1}...`);
@@ -86,7 +84,6 @@ async function extractTextFromPDF(pdfPath) {
     }
 
     const fullText = extractedTexts.join('\n\n');
-    // console.log('Extracted Text:', fullText);
     return fullText;
   } catch (error) {
     console.error('PDF Extraction Error:', error);
