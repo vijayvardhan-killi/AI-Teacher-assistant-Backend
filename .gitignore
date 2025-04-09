@@ -7,3 +7,4 @@ node_modules/
 
 # Debug
 .vscode/
+.idx/

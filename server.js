@@ -6,7 +6,7 @@ const cors = require('cors');
 const fs = require('fs').promises;
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Tesseract = require('tesseract.js');
-const pdfPoppler = require('pdf-poppler');
+const { fromPath } = require('pdf2pic'); // Replaced pdf-poppler with pdf2pic
 const axios = require('axios');
 const sharp = require('sharp');
 
@@ -58,23 +58,31 @@ async function extractTextFromPDF(pdfPath) {
   const outputDir = './output';
   try {
     await fs.mkdir(outputDir, { recursive: true });
-
-    await pdfPoppler.convert(pdfPath, {
-      format: 'png',
-      out_dir: outputDir,
-      out_prefix: 'page',
-      page: null,
-    });
-
+    
+    // Configure pdf2pic options
+    const options = {
+      density: 300,
+      saveFilename: "page",
+      savePath: outputDir,
+      format: "png",
+      width: 2480, // A4 at 300 DPI
+      height: 3508 // A4 at 300 DPI
+    };
+    
+    // Create converter instance
+    const convert = fromPath(pdfPath, options);
+    
+    // Convert all pages
+    const conversionResults = await convert.bulk(-1); // -1 means all pages
+    
     const extractedTexts = [];
-    const files = await fs.readdir(outputDir);
-    for (const file of files) {
-      const imagePath = path.join(outputDir, file);
+    for (let i = 0; i < conversionResults.length; i++) {
+      const imagePath = conversionResults[i].path;
       await preprocessImage(imagePath);
-
-      console.log(`Processing ${file}...`);
+      
+      console.log(`Processing page ${i+1}...`);
       const { data: { text } } = await Tesseract.recognize(imagePath, 'eng');
-      extractedTexts.push(`${file}: ${text}`);
+      extractedTexts.push(`Page ${i+1}: ${text}`);
     }
 
     const fullText = extractedTexts.join('\n\n');
