@@ -2,9 +2,11 @@
 FROM node:18-slim
 
 # Install poppler-utils for PDF to image conversion
-RUN apt-get update && apt-get install -y poppler-utils \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y graphicsmagick poppler-utils && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 
 # Create app directory
 WORKDIR /app
